@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -23,11 +24,11 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      setError(
-        authError.message === 'Invalid login credentials'
-          ? 'Email ou senha incorretos.'
-          : authError.message
-      );
+      const errorMsg = authError.message === 'Invalid login credentials'
+        ? 'Email ou senha incorretos.'
+        : authError.message;
+      setError(errorMsg);
+      toast.error(errorMsg);
       setIsLoading(false);
       return;
     }

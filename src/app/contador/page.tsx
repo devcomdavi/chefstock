@@ -2,7 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
+import Skeleton from '@/components/Skeleton';
 import { Ingredient, IngredientCategory, UserRole } from '@/types';
 
 const CATEGORY_LABELS: Record<IngredientCategory, string> = {
@@ -59,7 +61,7 @@ export default function ContadorPage() {
 
       if (error) {
         console.error('Erro ao buscar insumos:', error);
-        alert('Erro ao carregar os dados do banco.');
+        toast.error('Erro ao carregar os dados do banco.');
       } else if (data) {
         const formattedData: Ingredient[] = data.map((item) => ({
           id: item.id,
@@ -105,7 +107,7 @@ export default function ContadorPage() {
         }));
 
       if (inserts.length === 0) {
-        alert('Você não alterou nenhuma quantidade ainda.');
+        toast.error('Você não alterou nenhuma quantidade ainda.');
         setIsSaving(false);
         return;
       }
@@ -113,7 +115,7 @@ export default function ContadorPage() {
       const { error } = await supabase.from('daily_counts').insert(inserts);
       if (error) throw error;
 
-      alert('Contagem salva com sucesso! 🚀');
+      toast.success('Contagem salva com sucesso! 🚀');
       setCounts((prev) => {
         const next = { ...prev };
         for (const id of activeCategoryIds) {
@@ -123,7 +125,7 @@ export default function ContadorPage() {
       });
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar a contagem. Tente novamente.');
+      toast.error('Erro ao salvar a contagem. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -183,8 +185,12 @@ export default function ContadorPage() {
       {/* Lista de Insumos */}
       <div className="flex-1 px-4 pb-24 space-y-3">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <p className="text-gray-500 font-medium animate-pulse">Carregando insumos da despensa...</p>
+          <div className="space-y-3 pt-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
           </div>
         ) : filteredIngredients.length === 0 ? (
           <div className="text-center py-16">
@@ -214,12 +220,12 @@ export default function ContadorPage() {
                     }}
                     onBlur={() => setEditingCountId(null)}
                     onKeyDown={(e) => { if (e.key === 'Enter') setEditingCountId(null); }}
-                    className="w-16 text-center font-bold text-lg border-2 border-blue-500 rounded-lg p-1 outline-none"
+                    className="w-16 text-center font-bold text-lg border-2 border-blue-500 rounded-lg p-1 outline-none text-black"
                   />
                 ) : (
                   <span
                     onClick={() => setEditingCountId(item.id)}
-                    className="w-12 text-center font-bold text-lg cursor-pointer hover:bg-gray-100 rounded-lg p-1 transition-colors border border-dashed border-transparent hover:border-gray-300"
+                    className="w-12 text-center font-bold text-lg cursor-pointer hover:bg-gray-100 rounded-lg p-1 transition-colors border border-dashed border-transparent hover:border-gray-300 text-black"
                   >
                     {counts[item.id] || 0}
                   </span>

@@ -2,7 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
+import Skeleton from '@/components/Skeleton';
 import { createEmployee, deleteEmployee } from './actions';
 import { PurchasingReportItem, Ingredient, IngredientCategory, Profile, UserRole } from '@/types';
 
@@ -112,7 +114,7 @@ export default function AdminDashboardPage() {
       setReport(generatedReport);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
-      alert('Erro ao carregar o relatório de compras.');
+      toast.error('Erro ao carregar o relatório de compras.');
     } finally {
       setIsLoading(false);
     }
@@ -164,12 +166,12 @@ export default function AdminDashboardPage() {
         .from('ingredients')
         .insert([{ name, unit, min_stock: Number(minStock), category }]);
       if (error) throw error;
-      alert('Insumo cadastrado com sucesso! ✅');
+      toast.success('Insumo cadastrado com sucesso!');
       setName(''); setUnit('kg'); setMinStock(''); setCategory('cozinha');
       fetchDashboardData();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Verifique o console';
-      alert(`Falha no banco: ${message}`);
+      toast.error(`Falha no banco: ${message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -190,7 +192,7 @@ export default function AdminDashboardPage() {
   const handleSaveEdit = async () => {
     if (!editingIngredient) return;
     if (!editName.trim() || !editMinStock || isNaN(Number(editMinStock))) {
-      alert('Preencha todos os campos corretamente.'); return;
+      toast.error('Preencha preencher corretamente.'); return;
     }
     setIsUpdating(true);
     try {
@@ -202,7 +204,7 @@ export default function AdminDashboardPage() {
       closeEditModal(); fetchDashboardData();
     } catch (error) {
       console.error('Erro ao atualizar insumo:', error);
-      alert('Erro ao atualizar o insumo.');
+      toast.error('Erro ao atualizar o insumo.');
     } finally { setIsUpdating(false); }
   };
 
@@ -216,7 +218,7 @@ export default function AdminDashboardPage() {
       closeEditModal(); fetchDashboardData();
     } catch (error) {
       console.error('Erro ao excluir insumo:', error);
-      alert('Erro ao excluir o insumo.');
+      toast.error('Erro ao excluir o insumo.');
     } finally { setIsUpdating(false); }
   };
 
@@ -238,7 +240,7 @@ export default function AdminDashboardPage() {
 
     const result = await createEmployee(formData);
     if (result.error) {
-      alert(`Erro: ${result.error}`);
+      toast.error(`Erro: ${result.error}`);
     } else {
       setNewEmpName(''); setNewEmpEmail(''); setNewEmpPassword('');
       setNewEmpRole('contador_cozinha');
@@ -251,7 +253,7 @@ export default function AdminDashboardPage() {
     if (!confirm(`Remover "${empName}"? Esta ação não pode ser desfeita.`)) return;
     const result = await deleteEmployee(userId);
     if (result.error) {
-      alert(`Erro: ${result.error}`);
+      toast.error(`Erro: ${result.error}`);
     } else {
       fetchEmployees();
     }
@@ -474,7 +476,13 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500 animate-pulse">Calculando relatório...</div>
+              <div className="p-6 space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -627,12 +635,12 @@ export default function AdminDashboardPage() {
                 <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Cadastrar Funcionário</h4>
                 <form onSubmit={handleCreateEmployee} className="space-y-3">
                   <input type="text" required value={newEmpName} onChange={(e) => setNewEmpName(e.target.value)}
-                    placeholder="Nome completo" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                    placeholder="Nome completo" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                   <div className="grid grid-cols-2 gap-3">
                     <input type="email" required value={newEmpEmail} onChange={(e) => setNewEmpEmail(e.target.value)}
-                      placeholder="Email" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                      placeholder="Email" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                     <input type="password" required minLength={6} value={newEmpPassword} onChange={(e) => setNewEmpPassword(e.target.value)}
-                      placeholder="Senha (mín. 6)" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm" />
+                      placeholder="Senha (mín. 6)" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">Função</label>
@@ -664,7 +672,11 @@ export default function AdminDashboardPage() {
                   Funcionários ({employees.length})
                 </h4>
                 {isLoadingTeam ? (
-                  <p className="text-gray-500 text-sm animate-pulse text-center py-4">Carregando...</p>
+                  <div className="space-y-3 py-2">
+                    <Skeleton className="h-14 w-full" />
+                    <Skeleton className="h-14 w-full" />
+                    <Skeleton className="h-14 w-full" />
+                  </div>
                 ) : employees.length === 0 ? (
                   <p className="text-gray-400 text-sm text-center py-4">Nenhum funcionário cadastrado.</p>
                 ) : (
