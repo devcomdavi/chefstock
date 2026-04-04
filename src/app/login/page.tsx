@@ -42,7 +42,7 @@ export default function LoginPage() {
         {/* Logo / Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl shadow-lg mb-4">
-            <span className="text-3xl">🍳</span>
+            <img src="./icon-512.png" alt="logo chefstock" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800">ChefStock</h1>
           <p className="text-gray-500 text-sm mt-1">Gestão inteligente de estoque</p>
