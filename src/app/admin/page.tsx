@@ -541,7 +541,7 @@ export default function AdminDashboardPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
                 <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
@@ -560,7 +560,7 @@ export default function AdminDashboardPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
                   <select value={editUnit} onChange={(e) => setEditUnit(e.target.value)}
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black">
                     <option value="kg">Quilo (kg)</option>
                     <option value="litros">Litro (l)</option>
                     <option value="unidade">Unidade (un)</option>
@@ -571,7 +571,7 @@ export default function AdminDashboardPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Limite Mín.</label>
                   <input type="number" min="0" step="0.1" value={editMinStock} onChange={(e) => setEditMinStock(e.target.value)}
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black" />
                 </div>
               </div>
             </div>
