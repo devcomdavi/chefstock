@@ -100,7 +100,6 @@ export default function ContadorPage() {
         .map(([ingredientId, amount]) => ({
           ingredient_id: ingredientId,
           actual_amount: amount,
-          user_id: user?.id || null,
         }));
 
       if (inserts.length === 0) {
