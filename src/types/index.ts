@@ -1,13 +1,20 @@
 // src/types/index.ts
 
-export type IngredientCategory = 'cozinha' | 'salao';
-export type UserRole = 'admin' | 'contador_cozinha' | 'contador_salao';
+export type IngredientCategory = string;
+export type UserRole = string;
+
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+}
 
 export interface Ingredient {
   id: string;
   name: string;
   unit: string;
   minStock: number;
+  unitPrice: number;
   category: IngredientCategory;
 }
 

@@ -1,58 +1,56 @@
-// src/app/contador/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import Skeleton from '@/components/Skeleton';
-import { Ingredient, IngredientCategory, UserRole } from '@/types';
-
-const CATEGORY_LABELS: Record<IngredientCategory, string> = {
-  cozinha: '👨‍🍳 Cozinha',
-  salao: '🍽️ Salão',
-};
+import { Ingredient, UserRole, Category } from '@/types';
 
 export default function ContadorPage() {
   const supabase = createClient();
 
+  const [categories, setCategories] = useState<Category[]>([]);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userName, setUserName] = useState('');
-  const [activeCategory, setActiveCategory] = useState<IngredientCategory>('cozinha');
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [editingCountId, setEditingCountId] = useState<string | null>(null);
 
-  // Busca o perfil do usuário logado e trava a aba
   useEffect(() => {
-    async function getUserProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, name')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        const role = profile.role as UserRole;
-        setUserRole(role);
-        setUserName(profile.name);
-
-        // Trava na categoria do perfil
-        if (role === 'contador_cozinha') setActiveCategory('cozinha');
-        if (role === 'contador_salao') setActiveCategory('salao');
-      }
-    }
-    getUserProfile();
-  }, [supabase]);
-
-  // Busca insumos
-  useEffect(() => {
-    async function fetchIngredients() {
+    async function init() {
       setIsLoading(true);
+      // Fetch categories
+      const { data: cats } = await supabase.from('categories').select('*').order('name');
+      const loadedCats = cats || [];
+      setCategories(loadedCats);
+
+      // Fetch user profile
+      const { data: { user } } = await supabase.auth.getUser();
+      let role = 'admin';
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role, name').eq('id', user.id).single();
+        if (profile) {
+          role = profile.role;
+          setUserRole(role);
+          setUserName(profile.name);
+        }
+      }
+
+      let initialCat = loadedCats.length > 0 ? loadedCats[0].name : '';
+
+      if (role !== 'admin' && role.startsWith('contador_')) {
+         const catName = role.replace('contador_', '').toLowerCase();
+         const matchedCat = loadedCats.find(c => c.name.toLowerCase() === catName);
+         if (matchedCat) initialCat = matchedCat.name;
+         else initialCat = role.replace('contador_', ''); // fallback
+      }
+      
+      setActiveCategory(initialCat);
+
+      // Fetch ingredients
       const { data, error } = await supabase
         .from('ingredients')
         .select('*')
@@ -60,25 +58,24 @@ export default function ContadorPage() {
         .order('name');
 
       if (error) {
-        console.error('Erro ao buscar insumos:', error);
-        toast.error('Erro ao carregar os dados do banco.');
+        toast.error('Erro ao carregar insumos.');
       } else if (data) {
-        const formattedData: Ingredient[] = data.map((item) => ({
+        setIngredients(data.map((item) => ({
           id: item.id,
           name: item.name,
           unit: item.unit,
           minStock: item.min_stock,
-          category: item.category as IngredientCategory,
-        }));
-        setIngredients(formattedData);
+          unitPrice: item.unit_price || 0,
+          category: item.category,
+        })));
       }
       setIsLoading(false);
     }
-    fetchIngredients();
+    init();
   }, [supabase]);
 
   // O usuário pode trocar de aba?
-  const isLocked = userRole === 'contador_cozinha' || userRole === 'contador_salao';
+  const isLocked = userRole !== 'admin';
 
   const filteredIngredients = ingredients.filter(
     (item) => item.category === activeCategory
@@ -136,50 +133,62 @@ export default function ContadorPage() {
     window.location.href = '/login';
   };
 
+  const activeCatObj = categories.find(c => c.name === activeCategory);
+  const activeColor = activeCatObj?.color || '#3b82f6';
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <header className="px-4 pt-4 pb-2 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <button onClick={() => window.history.back()} className="text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors">
+            ← Voltar
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Sair
+          </button>
+        </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Contagem Diária</h1>
           <p className="text-sm text-gray-500">
             {userName ? `Olá, ${userName}!` : 'Registre o estoque atual.'}
           </p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 hover:text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          Sair
-        </button>
       </header>
 
       {/* Tabs de Categoria */}
       <div className="px-4 pt-2 pb-4">
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-          {(Object.keys(CATEGORY_LABELS) as IngredientCategory[]).map((cat) => {
-            const isDisabled = isLocked && activeCategory !== cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => { if (!isDisabled) setActiveCategory(cat); }}
-                disabled={isDisabled}
-                className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${
-                  activeCategory === cat
-                    ? cat === 'cozinha'
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-blue-500 text-white shadow-md'
-                    : isDisabled
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {CATEGORY_LABELS[cat]}
-                {isDisabled && ' 🔒'}
-              </button>
-            );
-          })}
-        </div>
+        {categories.length === 0 && !isLoading ? (
+          <p className="text-sm text-red-500">Nenhum setor cadastrado no sistema.</p>
+        ) : (
+          <div className="flex gap-2 bg-gray-100 p-1 rounded-xl overflow-x-auto">
+            {categories.map((cat) => {
+              const isDisabled = isLocked && activeCategory !== cat.name;
+              const isActive = activeCategory === cat.name;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => { if (!isDisabled) setActiveCategory(cat.name); }}
+                  disabled={isDisabled}
+                  style={isActive ? { backgroundColor: cat.color, color: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' } : {}}
+                  className={`flex-1 min-w-[100px] py-3 rounded-lg font-bold text-sm transition-all ${
+                    isActive 
+                      ? '' 
+                      : isDisabled 
+                        ? 'text-gray-300 cursor-not-allowed' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  {cat.name}
+                  {isDisabled && ' 🔒'}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Lista de Insumos */}
@@ -194,8 +203,8 @@ export default function ContadorPage() {
           </div>
         ) : filteredIngredients.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">{activeCategory === 'cozinha' ? '👨‍🍳' : '🍽️'}</p>
-            <p className="text-gray-500 font-medium">Nenhum insumo cadastrado para {CATEGORY_LABELS[activeCategory]}.</p>
+            <p className="text-4xl mb-3">📋</p>
+            <p className="text-gray-500 font-medium">Nenhum insumo cadastrado para {activeCategory}.</p>
             <p className="text-gray-400 text-sm mt-1">Peça ao gestor para adicionar insumos nesta categoria.</p>
           </div>
         ) : (
@@ -242,14 +251,11 @@ export default function ContadorPage() {
       <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <button
           onClick={handleSave}
-          disabled={isSaving}
-          className={`w-full font-bold py-4 rounded-xl shadow-md transition-colors ${
-            isSaving ? 'bg-blue-400 cursor-not-allowed'
-              : activeCategory === 'cozinha' ? 'bg-orange-500 hover:bg-orange-600'
-              : 'bg-blue-500 hover:bg-blue-600'
-          } text-white`}
+          disabled={isSaving || !activeCategory}
+          style={{ backgroundColor: (isSaving || !activeCategory) ? '#9ca3af' : activeColor }}
+          className={`w-full font-bold py-4 rounded-xl shadow-md transition-colors text-white ${(isSaving || !activeCategory) ? 'cursor-not-allowed' : 'hover:opacity-90'}`}
         >
-          {isSaving ? 'Salvando...' : `Salvar Contagem — ${CATEGORY_LABELS[activeCategory]}`}
+          {isSaving ? 'Salvando...' : activeCategory ? `Salvar Contagem — ${activeCategory}` : 'Selecione um setor'}
         </button>
       </div>
     </main>
