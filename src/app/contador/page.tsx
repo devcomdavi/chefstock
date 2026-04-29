@@ -29,11 +29,11 @@ export default function ContadorPage() {
 
       // Fetch user profile
       const { data: { user } } = await supabase.auth.getUser();
-      let role = 'admin';
+      let role: string[] = [];
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('role, name').eq('id', user.id).single();
         if (profile) {
-          role = profile.role;
+          role = profile.role || [];
           setUserRole(role);
           setUserName(profile.name);
         }
@@ -41,11 +41,14 @@ export default function ContadorPage() {
 
       let initialCat = loadedCats.length > 0 ? loadedCats[0].name : '';
 
-      if (role !== 'admin' && role.startsWith('contador_')) {
-         const catName = role.replace('contador_', '').toLowerCase();
-         const matchedCat = loadedCats.find(c => c.name.toLowerCase() === catName);
-         if (matchedCat) initialCat = matchedCat.name;
-         else initialCat = role.replace('contador_', ''); // fallback
+      if (!role.includes('admin')) {
+         const firstContador = role.find(r => r.startsWith('contador_'));
+         if (firstContador) {
+           const catName = firstContador.replace('contador_', '').toLowerCase();
+           const matchedCat = loadedCats.find(c => c.name.toLowerCase() === catName);
+           if (matchedCat) initialCat = matchedCat.name;
+           else initialCat = firstContador.replace('contador_', '');
+         }
       }
       
       setActiveCategory(initialCat);
@@ -75,7 +78,7 @@ export default function ContadorPage() {
   }, [supabase]);
 
   // O usuário pode trocar de aba?
-  const isLocked = userRole !== 'admin';
+  const isLocked = !userRole?.includes('admin');
 
   const filteredIngredients = ingredients.filter(
     (item) => item.category === activeCategory
@@ -165,7 +168,8 @@ export default function ContadorPage() {
         ) : (
           <div className="flex gap-2 bg-gray-100 p-1 rounded-xl overflow-x-auto">
             {categories.map((cat) => {
-              const isDisabled = isLocked && activeCategory !== cat.name;
+              const hasAccess = userRole?.includes('admin') || userRole?.includes(`contador_${cat.name.toLowerCase()}`);
+              const isDisabled = !hasAccess;
               const isActive = activeCategory === cat.name;
               return (
                 <button

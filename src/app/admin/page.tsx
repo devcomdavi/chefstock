@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
   const [newEmpName, setNewEmpName] = useState('');
   const [newEmpEmail, setNewEmpEmail] = useState('');
   const [newEmpPassword, setNewEmpPassword] = useState('');
-  const [newEmpRole, setNewEmpRole] = useState<UserRole>('');
+  const [newEmpRole, setNewEmpRole] = useState<UserRole>([]);
   const [isCreatingEmp, setIsCreatingEmp] = useState(false);
 
   // ─── DATA FETCHING ───
@@ -75,7 +75,7 @@ export default function AdminDashboardPage() {
       // Select first category by default if empty
       if (cats && cats.length > 0) {
         if (!category) setCategory(cats[0].name);
-        if (!newEmpRole) setNewEmpRole(`contador_${cats[0].name.toLowerCase()}`);
+        if (newEmpRole.length === 0) setNewEmpRole([`contador_${cats[0].name.toLowerCase()}`]);
       }
 
       // 2. Fetch ingredientes e contagens
@@ -303,7 +303,7 @@ export default function AdminDashboardPage() {
     formData.append('name', newEmpName);
     formData.append('email', newEmpEmail);
     formData.append('password', newEmpPassword);
-    formData.append('role', newEmpRole);
+    formData.append('role', JSON.stringify(newEmpRole));
 
     const result = await createEmployee(formData);
     if (result.error) {
@@ -800,20 +800,25 @@ export default function AdminDashboardPage() {
                       placeholder="Senha (mín. 6)" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Função</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Funções</label>
                     <div className="flex gap-2 flex-wrap">
-                      <button type="button" onClick={() => setNewEmpRole('admin')}
-                        className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${newEmpRole === 'admin'
+                      <button type="button" onClick={() => {
+                        setNewEmpRole(prev => prev.includes('admin') ? prev.filter(r => r !== 'admin') : [...prev, 'admin']);
+                      }}
+                        className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${newEmpRole.includes('admin')
                             ? 'border-purple-500 bg-purple-50 text-purple-700'
                             : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
                           }`}>👑 Administrador</button>
                       
                       {categories.map((cat) => {
                         const roleValue = `contador_${cat.name.toLowerCase()}`;
+                        const isSelected = newEmpRole.includes(roleValue);
                         return (
-                          <button key={cat.id} type="button" onClick={() => setNewEmpRole(roleValue)}
-                            style={newEmpRole === roleValue ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
-                            className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${newEmpRole === roleValue
+                          <button key={cat.id} type="button" onClick={() => {
+                            setNewEmpRole(prev => prev.includes(roleValue) ? prev.filter(r => r !== roleValue) : [...prev, roleValue]);
+                          }}
+                            style={isSelected ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
+                            className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${isSelected
                                 ? '' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
                               }`}>📝 Contador {cat.name}</button>
                         );
@@ -849,11 +854,13 @@ export default function AdminDashboardPage() {
                           <div className="font-semibold text-gray-800 text-sm truncate">{emp.name}</div>
                           <div className="text-xs text-gray-500 truncate">{emp.email}</div>
                         </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap bg-gray-100 text-gray-700 border-gray-200`}>
-                            {getRoleLabel(emp.role)}
-                          </span>
-                          {emp.role !== 'admin' && (
+                        <div className="flex items-center gap-2 ml-3 flex-wrap justify-end">
+                          {emp.role?.map(r => (
+                            <span key={r} className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap bg-gray-100 text-gray-700 border-gray-200`}>
+                              {getRoleLabel(r)}
+                            </span>
+                          ))}
+                          {!emp.role?.includes('admin') && (
                             <button onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                               className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors" title="Remover">✕</button>
                           )}

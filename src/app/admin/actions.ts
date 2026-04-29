@@ -15,7 +15,7 @@ async function verifyAdmin() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') throw new Error('Sem permissão')
+  if (!profile?.role?.includes('admin')) throw new Error('Sem permissão')
   return user
 }
 
@@ -26,10 +26,17 @@ export async function createEmployee(formData: FormData) {
     const name = formData.get('name') as string
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const role = formData.get('role') as string
-
-    if (!name || !email || !password || !role) {
+    const roleString = formData.get('role') as string
+    
+    if (!name || !email || !password || !roleString) {
       return { error: 'Todos os campos são obrigatórios.' }
+    }
+
+    let role: string[] = []
+    try {
+      role = JSON.parse(roleString)
+    } catch {
+      role = [roleString]
     }
 
     const admin = getSupabaseAdmin()

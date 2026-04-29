@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const url = request.nextUrl.clone()
-    url.pathname = profile?.role === 'admin' ? '/admin' : '/contador'
+    url.pathname = profile?.role?.includes('admin') ? '/admin' : '/contador'
     return NextResponse.redirect(url)
   }
 
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (!profile?.role?.includes('admin')) {
       const url = request.nextUrl.clone()
       url.pathname = '/contador'
       return NextResponse.redirect(url)

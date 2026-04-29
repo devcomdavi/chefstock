@@ -1,7 +1,7 @@
 // src/types/index.ts
 
 export type IngredientCategory = string;
-export type UserRole = string;
+export type UserRole = string[];
 
 export interface Category {
   id: string;
