@@ -576,7 +576,7 @@ export default function AdminDashboardPage() {
                   )}
                   
                   <div className="flex items-center gap-2 max-w-full justify-end flex-1">
-                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden flex-1 sm:flex-none sm:w-72 h-[36px]">
+                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden flex-1 sm:flex-none sm:w-96 lg:w-[400px] h-[36px]">
                       <div className="pl-3 pr-2 text-gray-500 flex items-center justify-center">
                         🔍
                       </div>
@@ -585,7 +585,7 @@ export default function AdminDashboardPage() {
                         placeholder="Pesquisar insumo..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent outline-none text-sm h-full w-full pr-2"
+                        className="bg-transparent outline-none text-sm h-full w-full pr-2 text-black placeholder-gray-500"
                       />
                     </div>
 
