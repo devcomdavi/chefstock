@@ -110,6 +110,7 @@ export async function updateEmployee(userId: string, formData: FormData) {
     if (authError) return { error: authError.message }
     
     // Atualiza explicitamente a tabela profiles para garantir a sincronização imediata
+    // @ts-expect-error O client admin não possui tipagem forte para a tabela profiles
     const { error: profileError } = await admin.from('profiles').update({ name, role }).eq('id', userId)
     
     if (profileError) {
