@@ -567,58 +567,61 @@ export default function AdminDashboardPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-gray-800 text-center w-full">Status do Estoque</h2>
-              <div className="flex flex-col sm:items-center lg:items-end gap-3 w-full">
-                <div className="flex items-center gap-4 flex-wrap justify-center lg:justify-end w-full">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+                <div className="flex-1 flex justify-start min-w-[120px]">
                   {selectedIds.length > 0 && (
                     <button onClick={() => setShowBulkDeleteConfirm(true)} disabled={isDeletingBulk} className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                       {isDeletingBulk ? 'Excluindo...' : `Excluir ${selectedIds.length}`}
                     </button>
                   )}
-                  
-                  <div className="flex items-center gap-2 max-w-full justify-end flex-1">
-                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden flex-1 sm:flex-none sm:w-96 lg:w-[400px] h-[36px]">
-                      <div className="pl-3 pr-2 text-gray-500 flex items-center justify-center">
-                        🔍
-                      </div>
-                      <input 
-                        type="text" 
-                        placeholder="Pesquisar insumo..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent outline-none text-sm h-full w-full pr-2 text-black placeholder-gray-500"
-                      />
-                    </div>
+                </div>
 
-                    <div className="relative">
-                      <button 
-                        onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                        className={`px-4 rounded-lg transition-colors flex items-center justify-center gap-2 h-[36px] text-sm font-bold ${filterCategory !== 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                        title="Filtros de Setor"
-                      >
-                        🏷️ Filtros {filterCategory !== 'all' && <span className="w-2 h-2 rounded-full bg-blue-500 ml-1"></span>}
-                      </button>
+                <div className="flex items-center justify-center gap-2 max-w-full flex-[2]">
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                      className={`px-4 rounded-lg transition-colors flex items-center justify-center gap-2 h-[36px] text-sm font-bold ${filterCategory !== 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      title="Filtros de Setor"
+                    >
+                      🏷️ Filtros {filterCategory !== 'all' && <span className="w-2 h-2 rounded-full bg-blue-500 ml-1"></span>}
+                    </button>
 
-                      {isFiltersExpanded && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setIsFiltersExpanded(false)}></div>
-                          <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-20 min-w-[200px] flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
-                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1 mb-1">Setores</div>
-                            <button onClick={() => { setFilterCategory('all'); setIsFiltersExpanded(false); }}
-                              className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-                                }`}>Todos</button>
-                            {categories.map((cat) => (
-                              <button key={cat.id} onClick={() => { setFilterCategory(cat.name); setIsFiltersExpanded(false); }}
-                                className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === cat.name ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-                                  }`}>{cat.name}</button>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                    {isFiltersExpanded && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsFiltersExpanded(false)}></div>
+                        <div className="absolute left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-20 min-w-[200px] flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
+                          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1 mb-1">Setores</div>
+                          <button onClick={() => { setFilterCategory('all'); setIsFiltersExpanded(false); }}
+                            className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                              }`}>Todos</button>
+                          {categories.map((cat) => (
+                            <button key={cat.id} onClick={() => { setFilterCategory(cat.name); setIsFiltersExpanded(false); }}
+                              className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === cat.name ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                                }`}>{cat.name}</button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden flex-1 sm:flex-none sm:w-96 lg:w-[400px] h-[36px]">
+                    <div className="pl-3 pr-2 text-gray-500 flex items-center justify-center">
+                      🔍
                     </div>
+                    <input 
+                      type="text" 
+                      placeholder="Pesquisar insumo..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent outline-none text-sm h-full w-full pr-2 text-black placeholder-gray-500"
+                    />
                   </div>
                 </div>
-                <div className="text-sm font-semibold bg-green-100 text-black px-3 py-1.5 rounded-lg border border-green-200 self-end">
-                  Total da Lista: R$ {filteredReport.reduce((acc, item) => acc + (item.amountToBuy * (item.unitPrice || 0)), 0).toFixed(2)}
+
+                <div className="flex-1 flex justify-end min-w-[120px]">
+                  <div className="text-sm font-semibold bg-green-100 text-black px-3 py-1.5 rounded-lg border border-green-200 whitespace-nowrap">
+                    Total da Lista: R$ {filteredReport.reduce((acc, item) => acc + (item.amountToBuy * (item.unitPrice || 0)), 0).toFixed(2)}
+                  </div>
                 </div>
               </div>
             </div>
