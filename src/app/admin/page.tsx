@@ -25,6 +25,7 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [adminName, setAdminName] = useState('Gestor');
 
   // Estados para o formulário de novo insumo
@@ -568,25 +569,36 @@ export default function AdminDashboardPage() {
               <h2 className="text-2xl font-bold text-gray-800 text-center w-full">Status do Estoque</h2>
               <div className="flex flex-col sm:items-center lg:items-end gap-3 w-full">
                 <div className="flex items-center gap-4 flex-wrap justify-center lg:justify-end w-full">
-                  <input 
-                    type="text" 
-                    placeholder="🔍 Pesquisar insumo..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-auto min-w-[200px]"
-                  />
                   {selectedIds.length > 0 && (
                     <button onClick={() => setShowBulkDeleteConfirm(true)} disabled={isDeletingBulk} className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                       {isDeletingBulk ? 'Excluindo...' : `Excluir ${selectedIds.length}`}
                     </button>
                   )}
-                  <div className="flex gap-1 bg-gray-200 p-0.5 rounded-lg overflow-x-auto">
+                  
+                  <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden transition-all duration-300">
+                    <button 
+                      onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                      className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+                      title="Pesquisar"
+                    >
+                      🔍
+                    </button>
+                    <input 
+                      type="text" 
+                      placeholder="Pesquisar insumo..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className={`bg-transparent outline-none text-sm transition-all duration-300 ${isSearchExpanded || searchQuery.length > 0 ? 'w-48 px-2' : 'w-0 px-0'}`}
+                    />
+                  </div>
+
+                  <div className="flex gap-1 bg-gray-200 p-1 rounded-lg overflow-x-auto">
                     <button onClick={() => setFilterCategory('all')}
-                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                         }`}>Todos</button>
                     {categories.map((cat) => (
                       <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                           }`}>{cat.name}</button>
                     ))}
                   </div>
