@@ -25,7 +25,7 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [adminName, setAdminName] = useState('Gestor');
 
   // Estados para o formulário de novo insumo
@@ -575,33 +575,45 @@ export default function AdminDashboardPage() {
                     </button>
                   )}
                   
-                  <div className="flex items-center gap-2 max-w-full">
-                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0">
-                      <button 
-                        onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                        className="p-2 text-gray-500 hover:text-gray-700 transition-colors h-[36px] flex items-center justify-center"
-                        title="Pesquisar"
-                      >
+                  <div className="flex items-center gap-2 max-w-full justify-end flex-1">
+                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden flex-1 sm:flex-none sm:w-72 h-[36px]">
+                      <div className="pl-3 pr-2 text-gray-500 flex items-center justify-center">
                         🔍
-                      </button>
+                      </div>
                       <input 
                         type="text" 
                         placeholder="Pesquisar insumo..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className={`bg-transparent outline-none text-sm transition-all duration-300 h-full ${isSearchExpanded || searchQuery.length > 0 ? 'w-48 px-2' : 'w-0 px-0'}`}
+                        className="bg-transparent outline-none text-sm h-full w-full pr-2"
                       />
                     </div>
 
-                    <div className="flex gap-1 bg-gray-200 p-1 rounded-lg overflow-x-auto">
-                      <button onClick={() => setFilterCategory('all')}
-                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                          }`}>Todos</button>
-                      {categories.map((cat) => (
-                        <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
-                          className={`px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                            }`}>{cat.name}</button>
-                      ))}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                        className={`px-4 rounded-lg transition-colors flex items-center justify-center gap-2 h-[36px] text-sm font-bold ${filterCategory !== 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                        title="Filtros de Setor"
+                      >
+                        🏷️ Filtros {filterCategory !== 'all' && <span className="w-2 h-2 rounded-full bg-blue-500 ml-1"></span>}
+                      </button>
+
+                      {isFiltersExpanded && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setIsFiltersExpanded(false)}></div>
+                          <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-20 min-w-[200px] flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1 mb-1">Setores</div>
+                            <button onClick={() => { setFilterCategory('all'); setIsFiltersExpanded(false); }}
+                              className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                                }`}>Todos</button>
+                            {categories.map((cat) => (
+                              <button key={cat.id} onClick={() => { setFilterCategory(cat.name); setIsFiltersExpanded(false); }}
+                                className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === cat.name ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                                  }`}>{cat.name}</button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
