@@ -575,32 +575,34 @@ export default function AdminDashboardPage() {
                     </button>
                   )}
                   
-                  <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden transition-all duration-300">
-                    <button 
-                      onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                      className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-                      title="Pesquisar"
-                    >
-                      🔍
-                    </button>
-                    <input 
-                      type="text" 
-                      placeholder="Pesquisar insumo..." 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className={`bg-transparent outline-none text-sm transition-all duration-300 ${isSearchExpanded || searchQuery.length > 0 ? 'w-48 px-2' : 'w-0 px-0'}`}
-                    />
-                  </div>
+                  <div className="flex items-center gap-2 max-w-full">
+                    <div className="flex items-center bg-gray-200 rounded-lg overflow-hidden transition-all duration-300 flex-shrink-0">
+                      <button 
+                        onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                        className="p-2 text-gray-500 hover:text-gray-700 transition-colors h-[36px] flex items-center justify-center"
+                        title="Pesquisar"
+                      >
+                        🔍
+                      </button>
+                      <input 
+                        type="text" 
+                        placeholder="Pesquisar insumo..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`bg-transparent outline-none text-sm transition-all duration-300 h-full ${isSearchExpanded || searchQuery.length > 0 ? 'w-48 px-2' : 'w-0 px-0'}`}
+                      />
+                    </div>
 
-                  <div className="flex gap-1 bg-gray-200 p-1 rounded-lg overflow-x-auto">
-                    <button onClick={() => setFilterCategory('all')}
-                      className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                        }`}>Todos</button>
-                    {categories.map((cat) => (
-                      <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
-                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                          }`}>{cat.name}</button>
-                    ))}
+                    <div className="flex gap-1 bg-gray-200 p-1 rounded-lg overflow-x-auto">
+                      <button onClick={() => setFilterCategory('all')}
+                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                          }`}>Todos</button>
+                      {categories.map((cat) => (
+                        <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
+                          className={`px-4 py-2 rounded-md text-sm font-bold transition-all whitespace-nowrap ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                            }`}>{cat.name}</button>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="text-sm font-semibold bg-green-100 text-black px-3 py-1.5 rounded-lg border border-green-200 self-end">
