@@ -71,3 +71,55 @@ export async function deleteEmployee(userId: string) {
     return { error: message }
   }
 }
+
+export async function updateEmployee(userId: string, formData: FormData) {
+  try {
+    await verifyAdmin()
+
+    const name = formData.get('name') as string
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const roleString = formData.get('role') as string
+    
+    if (!name || !email || !roleString) {
+      return { error: 'Nome, email e funções são obrigatórios.' }
+    }
+
+    let role: string[] = []
+    try {
+      role = JSON.parse(roleString)
+    } catch {
+      role = [roleString]
+    }
+
+    const admin = getSupabaseAdmin()
+    
+    // Configura os campos que serão atualizados
+    const updateData: any = {
+      email,
+      user_metadata: { name, role },
+    }
+    
+    // Atualiza a senha apenas se ela for fornecida e tiver no mínimo 6 caracteres
+    if (password && password.length >= 6) {
+      updateData.password = password;
+    }
+
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, updateData)
+
+    if (authError) return { error: authError.message }
+    
+    // Atualiza explicitamente a tabela profiles para garantir a sincronização imediata
+    const { error: profileError } = await admin.from('profiles').update({ name, role }).eq('id', userId)
+    
+    if (profileError) {
+      console.warn('Erro ao atualizar profiles:', profileError)
+      // Não falha a operação principal se a trigger já tiver feito o trabalho
+    }
+
+    return { success: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro desconhecido'
+    return { error: message }
+  }
+}

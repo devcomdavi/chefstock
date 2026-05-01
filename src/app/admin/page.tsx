@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/client';
 import Skeleton from '@/components/Skeleton';
-import { createEmployee, deleteEmployee } from './actions';
+import { createEmployee, deleteEmployee, updateEmployee } from './actions';
 import { PurchasingReportItem, Ingredient, Profile, UserRole, Category } from '@/types';
 
 const getRoleLabel = (role: string) => {
@@ -63,6 +63,7 @@ export default function AdminDashboardPage() {
   const [newEmpPassword, setNewEmpPassword] = useState('');
   const [newEmpRole, setNewEmpRole] = useState<UserRole>([]);
   const [isCreatingEmp, setIsCreatingEmp] = useState(false);
+  const [editingEmpId, setEditingEmpId] = useState<string | null>(null);
 
   // ─── DATA FETCHING ───
 
@@ -296,10 +297,12 @@ export default function AdminDashboardPage() {
 
   const openTeamModal = () => {
     setShowTeamModal(true);
+    setEditingEmpId(null);
+    setNewEmpName(''); setNewEmpEmail(''); setNewEmpPassword(''); setNewEmpRole([]);
     fetchEmployees();
   };
 
-  const handleCreateEmployee = async (e: React.FormEvent) => {
+  const handleSaveEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreatingEmp(true);
     const formData = new FormData();
@@ -308,14 +311,32 @@ export default function AdminDashboardPage() {
     formData.append('password', newEmpPassword);
     formData.append('role', JSON.stringify(newEmpRole));
 
-    const result = await createEmployee(formData);
+    const result = editingEmpId 
+      ? await updateEmployee(editingEmpId, formData)
+      : await createEmployee(formData);
+      
     if (result.error) {
       toast.error(`Erro: ${result.error}`);
     } else {
-      setNewEmpName(''); setNewEmpEmail(''); setNewEmpPassword('');
+      toast.success(editingEmpId ? 'Funcionário atualizado com sucesso!' : 'Funcionário cadastrado com sucesso!');
+      setNewEmpName(''); setNewEmpEmail(''); setNewEmpPassword(''); setNewEmpRole([]);
+      setEditingEmpId(null);
       fetchEmployees();
     }
     setIsCreatingEmp(false);
+  };
+
+  const handleEditEmployee = (emp: Profile) => {
+    setEditingEmpId(emp.id);
+    setNewEmpName(emp.name);
+    setNewEmpEmail(emp.email);
+    setNewEmpPassword(''); // Do not load password
+    setNewEmpRole(emp.role as UserRole);
+  };
+  
+  const cancelEditEmployee = () => {
+    setEditingEmpId(null);
+    setNewEmpName(''); setNewEmpEmail(''); setNewEmpPassword(''); setNewEmpRole([]);
   };
 
   const handleDeleteEmployee = async (userId: string, empName: string) => {
@@ -800,48 +821,94 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="overflow-y-auto flex-1">
-              {/* Formulário de novo funcionário */}
+              {/* Formulário de novo/editar funcionário */}
               <div className="p-6 border-b border-gray-100 bg-gray-50">
-                <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">Cadastrar Funcionário</h4>
-                <form onSubmit={handleCreateEmployee} className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    {editingEmpId ? 'Editar Funcionário' : 'Cadastrar Funcionário'}
+                  </h4>
+                  {editingEmpId && (
+                    <button type="button" onClick={cancelEditEmployee} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+                <form onSubmit={handleSaveEmployee} className="space-y-3">
                   <input type="text" required value={newEmpName} onChange={(e) => setNewEmpName(e.target.value)}
                     placeholder="Nome completo" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                   <div className="grid grid-cols-2 gap-3">
                     <input type="email" required value={newEmpEmail} onChange={(e) => setNewEmpEmail(e.target.value)}
                       placeholder="Email" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
-                    <input type="password" required minLength={6} value={newEmpPassword} onChange={(e) => setNewEmpPassword(e.target.value)}
-                      placeholder="Senha (mín. 6)" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
+                    <input type="password" required={!editingEmpId} minLength={6} value={newEmpPassword} onChange={(e) => setNewEmpPassword(e.target.value)}
+                      placeholder={editingEmpId ? "Nova senha (opcional)" : "Senha (mín. 6)"} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Funções</label>
-                    <div className="flex gap-2 flex-wrap">
-                      <button type="button" onClick={() => {
-                        setNewEmpRole(prev => prev.includes('admin') ? prev.filter(r => r !== 'admin') : [...prev, 'admin']);
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipo de Perfil</label>
+                    <select
+                      value={newEmpRole.includes('admin') ? 'admin' : 'colaborador'}
+                      onChange={(e) => {
+                        if (e.target.value === 'admin') {
+                          setNewEmpRole(['admin']);
+                        } else {
+                          setNewEmpRole([]);
+                        }
                       }}
-                        className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${newEmpRole.includes('admin')
-                            ? 'border-purple-500 bg-purple-50 text-purple-700'
-                            : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
-                          }`}>👑 Administrador</button>
-                      
-                      {categories.map((cat) => {
-                        const roleValue = `contador_${cat.name.toLowerCase()}`;
-                        const isSelected = newEmpRole.includes(roleValue);
-                        return (
-                          <button key={cat.id} type="button" onClick={() => {
-                            setNewEmpRole(prev => prev.includes(roleValue) ? prev.filter(r => r !== roleValue) : [...prev, roleValue]);
-                          }}
-                            style={isSelected ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
-                            className={`flex-1 min-w-[120px] py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all ${isSelected
-                                ? '' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
-                              }`}>📝 Contador {cat.name}</button>
-                        );
-                      })}
-                    </div>
+                      className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-black bg-white mb-3"
+                    >
+                      <option value="colaborador">👤 Colaborador (Acesso restrito a setores)</option>
+                      <option value="admin">👑 Administrador (Acesso total)</option>
+                    </select>
+
+                    {!newEmpRole.includes('admin') && (
+                      <>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Setores Permitidos</label>
+                        <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white">
+                          <div className="mb-2 pb-2 border-b border-gray-100">
+                            <label className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-md cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                              <input 
+                                type="checkbox" 
+                                checked={newEmpRole.length === categories.length && categories.length > 0}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setNewEmpRole(categories.map(c => `contador_${c.name.toLowerCase()}`));
+                                  } else {
+                                    setNewEmpRole([]);
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 cursor-pointer text-blue-600 focus:ring-blue-500 shrink-0"
+                              />
+                              <span className="text-sm font-bold text-gray-800">✅ Selecionar Todos</span>
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1">
+                            {categories.map((cat) => {
+                              const roleValue = `contador_${cat.name.toLowerCase()}`;
+                              const isSelected = newEmpRole.includes(roleValue);
+                              return (
+                                <label key={cat.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-md cursor-pointer transition-colors border border-transparent hover:border-gray-200">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      setNewEmpRole(prev => e.target.checked ? [...prev, roleValue] : prev.filter(r => r !== roleValue));
+                                    }}
+                                    style={{ accentColor: cat.color }}
+                                    className="w-4 h-4 rounded border-gray-300 cursor-pointer shrink-0"
+                                  />
+                                  <span className="text-xs text-gray-700 font-medium truncate" title={`Contador ${cat.name}`}>📝 Contador {cat.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <button type="submit" disabled={isCreatingEmp}
                     className={`w-full font-bold py-2.5 rounded-lg text-white text-sm transition-colors ${isCreatingEmp ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
                       }`}>
-                    {isCreatingEmp ? 'Cadastrando...' : 'Cadastrar Funcionário'}
+                    {isCreatingEmp ? 'Salvando...' : (editingEmpId ? 'Salvar Alterações' : 'Cadastrar Funcionário')}
                   </button>
                 </form>
               </div>
@@ -862,20 +929,34 @@ export default function AdminDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {employees.map((emp) => (
-                      <div key={emp.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div 
+                        key={emp.id} 
+                        onClick={() => {
+                          if (!emp.role?.includes('admin')) {
+                            handleEditEmployee(emp);
+                          }
+                        }}
+                        className={`flex items-center justify-between p-3 rounded-lg border border-gray-100 transition-colors ${!emp.role?.includes('admin') ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer' : 'bg-gray-50'}`}
+                      >
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-gray-800 text-sm truncate">{emp.name}</div>
                           <div className="text-xs text-gray-500 truncate">{emp.email}</div>
                         </div>
                         <div className="flex items-center gap-2 ml-3 flex-wrap justify-end">
-                          {emp.role?.map(r => (
-                            <span key={r} className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap bg-gray-100 text-gray-700 border-gray-200`}>
-                              {getRoleLabel(r)}
-                            </span>
-                          ))}
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap ${emp.role?.includes('admin') ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                            {emp.role?.includes('admin') ? '👑 Administrador' : '👤 Colaborador'}
+                          </span>
                           {!emp.role?.includes('admin') && (
-                            <button onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                              className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors" title="Remover">✕</button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteEmployee(emp.id, emp.name);
+                              }}
+                              className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors" 
+                              title="Remover"
+                            >
+                              ✕
+                            </button>
                           )}
                         </div>
                       </div>
