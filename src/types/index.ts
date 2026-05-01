@@ -16,6 +16,7 @@ export interface Ingredient {
   minStock: number;
   unitPrice: number;
   category: IngredientCategory;
+  isCountable: boolean;
 }
 
 export interface DailyCount {

@@ -42,15 +42,15 @@ export default function ContadorPage() {
       let initialCat = loadedCats.length > 0 ? loadedCats[0].name : '';
 
       if (!role.includes('admin')) {
-         const firstContador = role.find(r => r.startsWith('contador_'));
-         if (firstContador) {
-           const catName = firstContador.replace('contador_', '').toLowerCase();
-           const matchedCat = loadedCats.find(c => c.name.toLowerCase() === catName);
-           if (matchedCat) initialCat = matchedCat.name;
-           else initialCat = firstContador.replace('contador_', '');
-         }
+        const firstContador = role.find(r => r.startsWith('contador_'));
+        if (firstContador) {
+          const catName = firstContador.replace('contador_', '').toLowerCase();
+          const matchedCat = loadedCats.find(c => c.name.toLowerCase() === catName);
+          if (matchedCat) initialCat = matchedCat.name;
+          else initialCat = firstContador.replace('contador_', '');
+        }
       }
-      
+
       setActiveCategory(initialCat);
 
       // Fetch ingredients
@@ -70,6 +70,7 @@ export default function ContadorPage() {
           minStock: item.min_stock,
           unitPrice: item.unit_price || 0,
           category: item.category,
+          isCountable: item.is_countable ?? true,
         })));
       }
       setIsLoading(false);
@@ -177,11 +178,10 @@ export default function ContadorPage() {
                   onClick={() => { if (!isDisabled) setActiveCategory(cat.name); }}
                   disabled={isDisabled}
                   style={isActive ? { backgroundColor: cat.color, color: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' } : {}}
-                  className={`flex-1 min-w-[100px] py-3 rounded-lg font-bold text-sm transition-all ${
-                    isActive 
-                      ? '' 
-                      : isDisabled 
-                        ? 'text-gray-300 cursor-not-allowed' 
+                  className={`flex-1 min-w-[100px] py-3 rounded-lg font-bold text-sm transition-all ${isActive
+                      ? ''
+                      : isDisabled
+                        ? 'text-gray-300 cursor-not-allowed'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
@@ -215,35 +215,57 @@ export default function ContadorPage() {
             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-gray-800">{item.name}</h2>
-                <span className="text-xs text-gray-400">Unidade: {item.unit}</span>
+                <span className="text-xs text-gray-400">
+                  {item.isCountable !== false ? `Unidade: ${item.unit}` : `Estoque Mínimo: ${item.minStock}`}
+                </span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={() => handleUpdateCount(item.id, -1)}
-                  className="w-11 h-11 rounded-full bg-red-100 text-red-600 font-bold text-xl flex items-center justify-center active:bg-red-200 transition-colors">-</button>
-                {editingCountId === item.id ? (
-                  <input
-                    type="number"
-                    min="0"
-                    autoFocus
-                    value={counts[item.id] || 0}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setCounts((prev) => ({ ...prev, [item.id]: val }));
-                    }}
-                    onBlur={() => setEditingCountId(null)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingCountId(null); }}
-                    className="w-16 text-center font-bold text-lg border-2 border-blue-500 rounded-lg p-1 outline-none text-black"
-                  />
+                {item.isCountable !== false ? (
+                  <>
+                    <button onClick={() => handleUpdateCount(item.id, -1)}
+                      className="w-11 h-11 rounded-full bg-red-100 text-red-600 font-bold text-xl flex items-center justify-center active:bg-red-200 transition-colors">-</button>
+                    {editingCountId === item.id ? (
+                      <input
+                        type="number"
+                        min="0"
+                        autoFocus
+                        value={counts[item.id] || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCounts((prev) => ({ ...prev, [item.id]: val }));
+                        }}
+                        onBlur={() => setEditingCountId(null)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingCountId(null); }}
+                        className="w-16 text-center font-bold text-lg border-2 border-blue-500 rounded-lg p-1 outline-none text-black"
+                      />
+                    ) : (
+                      <span
+                        onClick={() => setEditingCountId(item.id)}
+                        className="w-12 text-center font-bold text-lg cursor-pointer hover:bg-gray-100 rounded-lg p-1 transition-colors border border-dashed border-transparent hover:border-gray-300 text-black"
+                      >
+                        {counts[item.id] || 0}
+                      </span>
+                    )}
+                    <button onClick={() => handleUpdateCount(item.id, 1)}
+                      className="w-11 h-11 rounded-full bg-green-100 text-green-600 font-bold text-xl flex items-center justify-center active:bg-green-200 transition-colors">+</button>
+                  </>
                 ) : (
-                  <span
-                    onClick={() => setEditingCountId(item.id)}
-                    className="w-12 text-center font-bold text-lg cursor-pointer hover:bg-gray-100 rounded-lg p-1 transition-colors border border-dashed border-transparent hover:border-gray-300 text-black"
-                  >
-                    {counts[item.id] || 0}
-                  </span>
+                  <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={(counts[item.id] || 0) < item.minStock}
+                      onChange={(e) => {
+                        const needToBuy = e.target.checked;
+                        setCounts(prev => ({
+                          ...prev,
+                          [item.id]: needToBuy ? 0 : item.minStock
+                        }));
+                      }}
+                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <span className="font-semibold text-gray-700 text-sm select-none">Comprar</span>
+                  </label>
                 )}
-                <button onClick={() => handleUpdateCount(item.id, 1)}
-                  className="w-11 h-11 rounded-full bg-green-100 text-green-600 font-bold text-xl flex items-center justify-center active:bg-green-200 transition-colors">+</button>
               </div>
             </div>
           ))

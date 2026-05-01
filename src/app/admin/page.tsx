@@ -32,6 +32,7 @@ export default function AdminDashboardPage() {
   const [minStock, setMinStock] = useState('');
   const [unitPrice, setUnitPrice] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [isCountable, setIsCountable] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estados para o modal de edição de insumo
@@ -41,6 +42,7 @@ export default function AdminDashboardPage() {
   const [editMinStock, setEditMinStock] = useState('');
   const [editUnitPrice, setEditUnitPrice] = useState('');
   const [editCategory, setEditCategory] = useState<string>('');
+  const [editIsCountable, setEditIsCountable] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -113,6 +115,7 @@ export default function AdminDashboardPage() {
           actualAmount,
           amountToBuy,
           isCritical: actualAmount === 0 || actualAmount < (minStockLimit / 2),
+          isCountable: ingredient.is_countable ?? true,
         });
       });
 
@@ -212,10 +215,10 @@ export default function AdminDashboardPage() {
     try {
       const { error } = await supabase
         .from('ingredients')
-        .insert([{ name, unit, min_stock: Number(minStock), unit_price: Number(unitPrice), category }]);
+        .insert([{ name, unit, min_stock: Number(minStock), unit_price: Number(unitPrice), category, is_countable: isCountable }]);
       if (error) throw error;
       toast.success('Insumo cadastrado com sucesso!');
-      setName(''); setUnit(''); setMinStock(''); setUnitPrice('');
+      setName(''); setUnit(''); setMinStock(''); setUnitPrice(''); setIsCountable(true);
       fetchDashboardData();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Verifique o console';
@@ -226,15 +229,15 @@ export default function AdminDashboardPage() {
   };
 
   const openEditModal = (item: PurchasingReportItem) => {
-    setEditingIngredient({ id: item.id, name: item.name, unit: item.unit, minStock: item.minStock, unitPrice: item.unitPrice, category: item.category });
+    setEditingIngredient({ id: item.id, name: item.name, unit: item.unit, minStock: item.minStock, unitPrice: item.unitPrice, category: item.category, isCountable: item.isCountable });
     setEditName(item.name); setEditUnit(item.unit);
-    setEditMinStock(item.minStock.toString()); setEditUnitPrice(item.unitPrice?.toString() || '0'); setEditCategory(item.category);
+    setEditMinStock(item.minStock.toString()); setEditUnitPrice(item.unitPrice?.toString() || '0'); setEditCategory(item.category); setEditIsCountable(item.isCountable);
     setShowDeleteConfirm(false);
   };
 
   const closeEditModal = () => {
     setEditingIngredient(null); setEditName(''); setEditUnit('');
-    setEditMinStock(''); setEditUnitPrice(''); setEditCategory(''); setShowDeleteConfirm(false);
+    setEditMinStock(''); setEditUnitPrice(''); setEditCategory(''); setEditIsCountable(true); setShowDeleteConfirm(false);
   };
 
   const handleSaveEdit = async () => {
@@ -246,7 +249,7 @@ export default function AdminDashboardPage() {
     try {
       const { error } = await supabase.from('ingredients').update({
         name: editName.trim(), unit: editUnit,
-        min_stock: Number(editMinStock), unit_price: Number(editUnitPrice), category: editCategory,
+        min_stock: Number(editMinStock), unit_price: Number(editUnitPrice), category: editCategory, is_countable: editIsCountable,
       }).eq('id', editingIngredient.id);
       if (error) throw error;
       closeEditModal(); fetchDashboardData();
@@ -453,11 +456,11 @@ export default function AdminDashboardPage() {
           <p className="text-gray-500 mt-1">Gerencie insumos, equipe e relatório de compras.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setShowCategoryModal(true)} className="bg-brown-400 text-black px-5 py-2 rounded-lg font-medium hover:bg-brown-700 transition-colors">
+          <button onClick={() => setShowCategoryModal(true)} className="bg-green-500 text-black px-5 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors">
             🏷️ Setores
           </button>
           <button onClick={() => window.location.href = '/contador'} className="bg-orange-500 text-white px-5 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors">
-            👁️ Visão Funcionário
+            👁️ Visão Colaborador
           </button>
           <button onClick={openTeamModal} className="bg-purple-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors">
             👥 Equipe
@@ -493,7 +496,7 @@ export default function AdminDashboardPage() {
                       <button key={cat.id} type="button" onClick={() => setCategory(cat.name)}
                         style={category === cat.name ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
                         className={`flex-1 min-w-[100px] py-2 px-3 rounded-lg text-sm font-bold border-2 transition-all ${category === cat.name
-                            ? '' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                            ? '' : 'border-gray-200 bg-white text-black hover:border-gray-300'
                           }`}>
                         {cat.name}
                       </button>
@@ -517,6 +520,11 @@ export default function AdminDashboardPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Preço Unitário (R$)</label>
                 <input type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} placeholder="Ex: 10.50"
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="isCountableNew" checked={isCountable} onChange={(e) => setIsCountable(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" />
+                <label htmlFor="isCountableNew" className="text-sm font-medium text-gray-700 cursor-pointer">Produto Contável (usa Contador numérico)</label>
               </div>
               <button type="submit" disabled={isSubmitting}
                 className={`w-full font-bold py-2.5 rounded-lg transition-colors text-white ${isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
@@ -718,7 +726,7 @@ export default function AdminDashboardPage() {
                     <button key={cat.id} type="button" onClick={() => setEditCategory(cat.name)}
                       style={editCategory === cat.name ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
                       className={`flex-1 min-w-[100px] py-2 px-3 rounded-lg text-sm font-bold border-2 transition-all ${editCategory === cat.name
-                          ? '' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                          ? '' : 'border-gray-200 bg-white text-black hover:border-gray-300'
                         }`}>{cat.name}</button>
                   ))}
                 </div>
@@ -740,6 +748,11 @@ export default function AdminDashboardPage() {
                 <input type="number" min="0" step="0.01" value={editUnitPrice}
                   onChange={(e) => setEditUnitPrice(e.target.value)}
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="isCountableEdit" checked={editIsCountable} onChange={(e) => setEditIsCountable(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" />
+                <label htmlFor="isCountableEdit" className="text-sm font-medium text-gray-700 cursor-pointer">Produto Contável (usa Contador numérico)</label>
               </div>
             </div>
             <div className="p-6 border-t border-gray-100 space-y-3">
