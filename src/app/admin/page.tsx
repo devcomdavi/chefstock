@@ -24,6 +24,7 @@ export default function AdminDashboardPage() {
   const [report, setReport] = useState<PurchasingReportItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState<string | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [adminName, setAdminName] = useState('Gestor');
 
   // Estados para o formulário de novo insumo
@@ -167,9 +168,11 @@ export default function AdminDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredReport = filterCategory === 'all'
-    ? report
-    : report.filter((item) => item.category === filterCategory);
+  const filteredReport = report.filter((item) => {
+    const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   // ─── HELPERS ───
   const getCategoryColor = (catName: string) => {
@@ -508,21 +511,23 @@ export default function AdminDashboardPage() {
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Setor</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Setor</label>
                 {categories.length === 0 ? (
                   <p className="text-sm text-red-500">Cadastre um setor primeiro.</p>
                 ) : (
-                  <div className="flex gap-2 flex-wrap">
+                  <select
+                    required
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                  >
+                    <option value="" disabled>Selecione um setor...</option>
                     {categories.map((cat) => (
-                      <button key={cat.id} type="button" onClick={() => setCategory(cat.name)}
-                        style={category === cat.name ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
-                        className={`flex-1 min-w-[100px] py-2 px-3 rounded-lg text-sm font-bold border-2 transition-all ${category === cat.name
-                            ? '' : 'border-gray-200 bg-white text-black hover:border-gray-300'
-                          }`}>
+                      <option key={cat.id} value={cat.name}>
                         {cat.name}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -559,26 +564,35 @@ export default function AdminDashboardPage() {
         {/* Tabela de estoque */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <h2 className="text-xl font-bold text-gray-800">Status do Estoque</h2>
-              <div className="flex items-center gap-4 flex-wrap">
-                {selectedIds.length > 0 && (
-                  <button onClick={() => setShowBulkDeleteConfirm(true)} disabled={isDeletingBulk} className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
-                    {isDeletingBulk ? 'Excluindo...' : `Excluir ${selectedIds.length}`}
-                  </button>
-                )}
-                <div className="text-sm font-semibold bg-green-100 text-black px-3 py-1.5 rounded-lg border border-green-200">
-                  Total da Lista: R$ {filteredReport.reduce((acc, item) => acc + (item.amountToBuy * (item.unitPrice || 0)), 0).toFixed(2)}
+            <div className="p-6 border-b border-gray-200 bg-gray-50 flex flex-col gap-4">
+              <h2 className="text-2xl font-bold text-gray-800 text-center w-full">Status do Estoque</h2>
+              <div className="flex flex-col sm:items-center lg:items-end gap-3 w-full">
+                <div className="flex items-center gap-4 flex-wrap justify-center lg:justify-end w-full">
+                  <input 
+                    type="text" 
+                    placeholder="🔍 Pesquisar insumo..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-auto min-w-[200px]"
+                  />
+                  {selectedIds.length > 0 && (
+                    <button onClick={() => setShowBulkDeleteConfirm(true)} disabled={isDeletingBulk} className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                      {isDeletingBulk ? 'Excluindo...' : `Excluir ${selectedIds.length}`}
+                    </button>
+                  )}
+                  <div className="flex gap-1 bg-gray-200 p-0.5 rounded-lg overflow-x-auto">
+                    <button onClick={() => setFilterCategory('all')}
+                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                        }`}>Todos</button>
+                    {categories.map((cat) => (
+                      <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                          }`}>{cat.name}</button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-1 bg-gray-200 p-0.5 rounded-lg overflow-x-auto">
-                  <button onClick={() => setFilterCategory('all')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                      }`}>Todos</button>
-                  {categories.map((cat) => (
-                    <button key={cat.id} onClick={() => setFilterCategory(cat.name)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${filterCategory === cat.name ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                        }`}>{cat.name}</button>
-                  ))}
+                <div className="text-sm font-semibold bg-green-100 text-black px-3 py-1.5 rounded-lg border border-green-200 self-end">
+                  Total da Lista: R$ {filteredReport.reduce((acc, item) => acc + (item.amountToBuy * (item.unitPrice || 0)), 0).toFixed(2)}
                 </div>
               </div>
             </div>
@@ -591,10 +605,10 @@ export default function AdminDashboardPage() {
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-16rem)]">
                 <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-white text-gray-500 text-sm uppercase tracking-wider border-b border-gray-200">
+                  <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                    <tr className="text-gray-500 text-sm uppercase tracking-wider border-b border-gray-200">
                       <th className="p-4 font-medium w-12 text-center">
                         <input type="checkbox" 
                           checked={filteredReport.length > 0 && selectedIds.length === filteredReport.length}
