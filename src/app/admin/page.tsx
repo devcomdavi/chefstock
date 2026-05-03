@@ -55,6 +55,9 @@ export default function AdminDashboardPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#f97316');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCatName, setEditCatName] = useState('');
+  const [editCatColor, setEditCatColor] = useState('#f97316');
 
   // Estados para gestão de equipe
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -193,6 +196,27 @@ export default function AdminDashboardPage() {
       fetchDashboardData();
     } catch (err: unknown) {
       toast.error('Erro ao criar setor.');
+    }
+  };
+
+  const handleUpdateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCatName.trim() || !editingCategoryId) return;
+    try {
+      const oldCat = categories.find(c => c.id === editingCategoryId);
+      
+      const { error } = await supabase.from('categories').update({ name: editCatName.trim(), color: editCatColor }).eq('id', editingCategoryId);
+      if (error) throw error;
+
+      if (oldCat && oldCat.name !== editCatName.trim()) {
+        await supabase.from('ingredients').update({ category: editCatName.trim() }).eq('category', oldCat.name);
+      }
+
+      toast.success('Setor atualizado!');
+      setEditingCategoryId(null);
+      fetchDashboardData();
+    } catch (err) {
+      toast.error('Erro ao atualizar setor.');
     }
   };
 
@@ -372,47 +396,28 @@ export default function AdminDashboardPage() {
     const totalCost = itemsToBuy.reduce((sum, item) => sum + (item.amountToBuy * (item.unitPrice || 0)), 0);
     const totalCostStr = totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-    const buildTable = (items: PurchasingReportItem[], title: string, color: string) => {
+    const buildList = (items: PurchasingReportItem[], title: string, color: string) => {
       if (items.length === 0) return '';
-      const rows = items.map((item, i) => `
-        <tr style="${i % 2 === 0 ? 'background:#f9fafb;' : ''}">
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">${item.name}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${item.actualAmount} ${item.unit}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">${item.minStock} ${item.unit}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">R$ ${(item.unitPrice || 0).toFixed(2)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:700;color:${color};">
-            ${item.amountToBuy} ${item.unit}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:700;color:#047857;">
-            R$ ${(item.amountToBuy * (item.unitPrice || 0)).toFixed(2)}
-          </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:center;">
-            <span style="display:inline-block;width:18px;height:18px;border:2px solid #9ca3af;border-radius:3px;"></span>
-          </td>
-        </tr>
+      const listItems = items.map((item) => `
+        <div style="display: flex; align-items: center; width: 31%; margin-bottom: 6px; font-size: 12px; break-inside: avoid;">
+          <span style="display:inline-block;min-width:12px;height:12px;border:1px solid #1f2937;margin-right:6px;border-radius:2px;"></span>
+          <span style="font-weight:700;margin-right:4px;white-space:nowrap;">${item.amountToBuy} ${item.unit}</span>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${item.name}">${item.name}</span>
+        </div>
       `).join('');
       return `
-        <h2 style="margin:24px 0 8px;font-size:16px;color:${color};border-bottom:2px solid ${color};padding-bottom:6px;">${title} (${items.length} itens)</h2>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <thead>
-            <tr style="background:#1f2937;color:white;">
-              <th style="padding:10px 12px;text-align:left;">Insumo</th>
-              <th style="padding:10px 12px;text-align:center;">Estoque</th>
-              <th style="padding:10px 12px;text-align:center;">Mínimo</th>
-              <th style="padding:10px 12px;text-align:center;">Preço Un.</th>
-              <th style="padding:10px 12px;text-align:center;">Qtd Comprar</th>
-              <th style="padding:10px 12px;text-align:center;">Subtotal</th>
-              <th style="padding:10px 12px;text-align:center;width:60px;">✓</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+        <div style="margin-bottom: 12px; page-break-inside: avoid;">
+          <h2 style="margin:0 0 6px 0;font-size:13px;color:${color};border-bottom:1px solid ${color};padding-bottom:2px;font-weight:bold;text-transform:uppercase;">${title} (${items.length})</h2>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;">
+            ${listItems}
+          </div>
+        </div>
       `;
     };
 
-    const tablesHtml = categories.map(cat => {
+    const listsHtml = categories.map(cat => {
       const catItems = itemsToBuy.filter(i => i.category === cat.name);
-      return buildTable(catItems, cat.name, cat.color);
+      return buildList(catItems, cat.name, cat.color);
     }).join('');
 
     const html = `
@@ -422,42 +427,35 @@ export default function AdminDashboardPage() {
         <meta charset="UTF-8">
         <title>Lista de Compras — ChefStock</title>
         <style>
-          @page { margin: 20mm 15mm; }
-          body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #1f2937; margin: 0; padding: 24px 40px; }
+          @page { margin: 10mm; }
+          body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.2; }
+          .header { border-bottom: 2px solid #000; margin-bottom: 12px; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .title { margin: 0; font-size: 18px; font-weight: bold; }
+          .meta { font-size: 11px; color: #333; text-align: right; }
           @media print { .no-print { display: none !important; } }
         </style>
       </head>
       <body>
-        <div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #f97316;padding-bottom:16px;">
-          <h1 style="margin:0;font-size:28px;color:#1f2937;">🍳 ChefStock</h1>
-          <p style="margin:4px 0 0;color:#6b7280;font-size:14px;">Lista de Compras</p>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:13px;color:#6b7280;">
+        <div class="header">
           <div>
-            <strong style="color:#374151;">Data:</strong> ${dateStr}<br>
-            <strong style="color:#374151;">Hora:</strong> ${timeStr}
+            <h1 class="title">Lista de Compras</h1>
+            <div style="font-size: 11px; margin-top: 2px;">ChefStock — ${dateStr} às ${timeStr}</div>
           </div>
-          <div style="text-align:right;">
-            <strong style="color:#374151;">Responsável:</strong> ${adminName}<br>
-            <strong style="color:#374151;">Total de itens:</strong> ${itemsToBuy.length}<br>
-            <strong style="color:#374151;font-size:16px;">Custo Estimado: <span style="color:#047857;">${totalCostStr}</span></strong>
+          <div class="meta">
+            <div>Resp: <strong>${adminName}</strong></div>
+            <div>Total: <strong>${itemsToBuy.length} itens</strong></div>
+            <div>Custo Est.: <strong>${totalCostStr}</strong></div>
           </div>
         </div>
 
         ${itemsToBuy.length === 0
-        ? '<p style="text-align:center;color:#6b7280;padding:40px 0;font-size:16px;">✅ Nenhum item precisa ser comprado!</p>'
-        : tablesHtml
+        ? '<p style="text-align:center;font-size:13px;margin-top:20px;">Nenhum item precisa ser comprado.</p>'
+        : '<div style="display:flex;flex-direction:column;gap:4px;">' + listsHtml + '</div>'
       }
 
-        <div style="margin-top:40px;padding-top:16px;border-top:2px solid #e5e7eb;display:flex;justify-content:space-between;font-size:12px;color:#9ca3af;">
-          <span>ChefStock — Gestão inteligente de estoque</span>
-          <span>Gerado em ${timeStr} de ${dateStr}</span>
-        </div>
-
         <div class="no-print" style="display:flex; justify-content:center; gap: 16px; margin-top:30px;">
-          <button onclick="window.location.reload()" style="background:#6b7280;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;">Voltar</button>
-          <button onclick="window.print()" style="background:#f97316;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button>
+          <button onclick="window.location.reload()" style="background:#6b7280;color:white;border:none;padding:8px 24px;border-radius:6px;font-size:14px;cursor:pointer;">Voltar</button>
+          <button onclick="window.print()" style="background:#f97316;color:white;border:none;padding:8px 24px;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;">Imprimir</button>
         </div>
       </body>
       </html>
@@ -516,19 +514,24 @@ export default function AdminDashboardPage() {
                 {categories.length === 0 ? (
                   <p className="text-sm text-red-500">Cadastre um setor primeiro.</p>
                 ) : (
-                  <select
-                    required
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
-                  >
-                    <option value="" disabled>Selecione um setor...</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2 items-center">
+                    {category && (
+                      <div className="w-8 h-8 rounded border flex-shrink-0" style={{ backgroundColor: getCategoryColor(category) }} />
+                    )}
+                    <select
+                      required
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black bg-white"
+                    >
+                      <option value="" disabled>Selecione um setor...</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -592,12 +595,15 @@ export default function AdminDashboardPage() {
                         <div className="absolute left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-20 min-w-[200px] flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
                           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1 mb-1">Setores</div>
                           <button onClick={() => { setFilterCategory('all'); setIsFiltersExpanded(false); }}
-                            className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                            className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left flex items-center gap-2 ${filterCategory === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
                               }`}>Todos</button>
                           {categories.map((cat) => (
                             <button key={cat.id} onClick={() => { setFilterCategory(cat.name); setIsFiltersExpanded(false); }}
-                              className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left ${filterCategory === cat.name ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-                                }`}>{cat.name}</button>
+                              className={`px-3 py-2 rounded-md text-sm font-bold transition-all text-left flex items-center gap-2 ${filterCategory === cat.name ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                                }`}>
+                              <div className="w-3 h-3 rounded" style={{ backgroundColor: cat.color }} />
+                              {cat.name}
+                            </button>
                           ))}
                         </div>
                       </>
@@ -681,7 +687,8 @@ export default function AdminDashboardPage() {
                             <div className="text-xs text-gray-500">Unidade: {item.unit}</div>
                           </td>
                           <td className="p-4 text-center">
-                            <span style={{ backgroundColor: `${catColor}15`, color: catColor, borderColor: `${catColor}30` }} className="inline-block px-2.5 py-1 rounded-full text-xs font-bold border">
+                            <span style={{ backgroundColor: `${catColor}15`, color: catColor, borderColor: `${catColor}30` }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border">
+                              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: catColor }}></span>
                               {item.category}
                             </span>
                           </td>
@@ -753,13 +760,29 @@ export default function AdminDashboardPage() {
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {categories.map(cat => (
-                  <div key={cat.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="font-medium text-gray-800 text-sm">{cat.name}</span>
+                  editingCategoryId === cat.id ? (
+                    <form key={cat.id} onSubmit={handleUpdateCategory} className="flex items-center gap-2 p-2 border border-blue-200 bg-blue-50 rounded-lg">
+                      <div className="flex-1">
+                        <input type="text" value={editCatName} onChange={e => setEditCatName(e.target.value)} required autoFocus className="w-full p-1.5 border border-gray-300 rounded outline-none text-black text-sm" />
+                      </div>
+                      <div>
+                        <input type="color" value={editCatColor} onChange={e => setEditCatColor(e.target.value)} className="w-8 h-8 p-0 border-0 rounded cursor-pointer" />
+                      </div>
+                      <button type="submit" className="text-blue-600 hover:text-blue-800 text-sm font-bold px-2">Salvar</button>
+                      <button type="button" onClick={() => setEditingCategoryId(null)} className="text-gray-500 hover:text-gray-700 text-sm font-bold px-2">Cancelar</button>
+                    </form>
+                  ) : (
+                    <div key={cat.id} 
+                         className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                         onClick={() => { setEditingCategoryId(cat.id); setEditCatName(cat.name); setEditCatColor(cat.color); }}
+                         title="Clique para editar">
+                      <div className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded shadow-sm border border-black/10" style={{ backgroundColor: cat.color }} />
+                        <span className="font-medium text-gray-800 text-sm">{cat.name}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }} className="text-red-500 hover:text-red-700 text-sm font-medium p-1 rounded hover:bg-red-50">Excluir</button>
                     </div>
-                    <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-500 hover:text-red-700 text-sm font-medium">Excluir</button>
-                  </div>
+                  )
                 ))}
                 {categories.length === 0 && <p className="text-sm text-gray-500 text-center">Nenhum setor cadastrado.</p>}
               </div>
@@ -789,9 +812,12 @@ export default function AdminDashboardPage() {
                   {categories.map((cat) => (
                     <button key={cat.id} type="button" onClick={() => setEditCategory(cat.name)}
                       style={editCategory === cat.name ? { borderColor: cat.color, backgroundColor: `${cat.color}20`, color: cat.color } : {}}
-                      className={`flex-1 min-w-[100px] py-2 px-3 rounded-lg text-sm font-bold border-2 transition-all ${editCategory === cat.name
+                      className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold border-2 transition-all ${editCategory === cat.name
                           ? '' : 'border-gray-200 bg-white text-black hover:border-gray-300'
-                        }`}>{cat.name}</button>
+                        }`}>
+                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: cat.color }} />
+                        {cat.name}
+                    </button>
                   ))}
                 </div>
               </div>
