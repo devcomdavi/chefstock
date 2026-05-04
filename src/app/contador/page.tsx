@@ -253,7 +253,7 @@ export default function ContadorPage() {
                   <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                     <input
                       type="checkbox"
-                      checked={(counts[item.id] || 0) < item.minStock}
+                      checked={counts[item.id] !== undefined ? counts[item.id] < item.minStock : false}
                       onChange={(e) => {
                         const needToBuy = e.target.checked;
                         setCounts(prev => ({
