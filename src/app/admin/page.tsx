@@ -107,7 +107,9 @@ export default function AdminDashboardPage() {
 
       ingredients?.forEach((ingredient) => {
         const latestCount = counts?.find(c => c.ingredient_id === ingredient.id);
-        const actualAmount = latestCount ? Number(latestCount.actual_amount) : 0;
+        const actualAmount = latestCount 
+          ? Number(latestCount.actual_amount) 
+          : (ingredient.is_countable === false ? Number(ingredient.min_stock) : 0);
         const minStockLimit = Number(ingredient.min_stock);
         const amountToBuy = actualAmount < minStockLimit ? minStockLimit - actualAmount : 0;
 
